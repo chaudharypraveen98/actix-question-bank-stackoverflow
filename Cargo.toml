@@ -5,5 +5,16 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# pg-mapper and pg-mapper-derive are used to map the postgres model to struct
+# deadpool postgres is used to connect / facilitate the connection to postgres
+# tokio-postgres is client for async call for postgres
+
 [dependencies]
 actix-web = "3"
+dotenv = "0.15.0"
+config = "0.11.0"
+serde = "1.0.132"
+tokio-pg-mapper = "0.2.0"
+tokio-pg-mapper-derive = "0.2.0"
+deadpool-postgres = { version="0.10.1", features = ["serde"]}
+tokio-postgres = "0.7.5"

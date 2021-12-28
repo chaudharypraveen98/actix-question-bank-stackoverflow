@@ -1,11 +1,11 @@
 mod config;
+mod db;
 mod handlers;
 mod models;
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 
 use crate::handlers::*;
-use deadpool_postgres::Runtime;
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
 
@@ -19,11 +19,11 @@ async fn echo(req_body: String) -> impl Responder {
     HttpResponse::Ok().body(req_body)
 }
 
-#[actix_web::main]
+#[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
     let config = crate::config::Config::from_env().unwrap();
-    let pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
+    let pool = config.pg.create_pool(NoTls).unwrap();
 
     println!(
         "Starting the server at http://{}:{}/",
@@ -39,6 +39,8 @@ async fn main() -> std::io::Result<()> {
             .service(hello)
             .service(echo)
             .route("/hey", web::get().to(manual_hello))
+            .route("/tags{_:/?}", web::get().to(get_tags))
+            .route("/questions{_:/?}", web::get().to(get_questions))
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()

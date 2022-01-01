@@ -40,7 +40,12 @@ async fn main() -> std::io::Result<()> {
             .service(echo)
             .route("/hey", web::get().to(manual_hello))
             .route("/tags{_:/?}", web::get().to(get_tags))
+            .route("/tags{_:/?}", web::post().to(create_tag))
             .route("/questions{_:/?}", web::get().to(get_questions))
+            .route(
+                "/questions/{tag_id}{_:/?}",
+                web::get().to(get_questions_by_tag),
+            )
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()

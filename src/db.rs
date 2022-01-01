@@ -1,4 +1,4 @@
-use crate::models::{Questions, Tag};
+use crate::models::{CreateTag, Questions, Tag, TagQuestionRelation};
 use deadpool_postgres::Client;
 use std::io;
 use tokio_pg_mapper::FromTokioPostgresRow;
@@ -33,4 +33,56 @@ pub async fn get_questions(client: &Client) -> Result<Vec<Questions>, io::Error>
     .collect::<Vec<Questions>>();
 
   Ok(questions)
+}
+
+pub async fn get_related_question(
+  client: &Client,
+  tag_id: i32,
+) -> Result<Vec<TagQuestionRelation>, io::Error> {
+  let statement = client
+    .prepare("select qt.tag_id,qt.question_id, t.tag_title, q.title as q_title,q.q_description, q.question_link, q.votes,q.views from tag_question qt, tag t, question q
+    where qt.tag_id = $1 and qt.question_id = q.question_id and qt.tag_id=t.tag_id;")
+    .await
+    .unwrap();
+  let questions = client
+    .query(&statement, &[&tag_id])
+    .await
+    .expect("Error getting tags")
+    .iter()
+    .map(|row| TagQuestionRelation::from_row_ref(row).unwrap())
+    .collect::<Vec<TagQuestionRelation>>();
+
+  Ok(questions)
+}
+
+pub async fn create_tag(client: &Client, tag_title: String) -> Result<Tag, io::Error> {
+  let statement = client
+    .prepare("insert into tag (tag_title) values ($1) returning tag_id, tag_title;")
+    .await
+    .unwrap();
+  client
+    .query(&statement, &[&tag_title])
+    .await
+    .expect("Error creating tag")
+    .iter()
+    .map(|row| Tag::from_row_ref(row).unwrap())
+    .collect::<Vec<Tag>>()
+    .pop()
+    .ok_or(io::Error::new(io::ErrorKind::Other, "Error creating tag"))
+}
+
+pub async fn update_tag(client: &Client, tag_id: i32, tag_title: String) -> Result<Tag, io::Error> {
+  let statement = client
+    .prepare("insert into tag (tag_title) values ($1) returning tag_id, tag_title;")
+    .await
+    .unwrap();
+  client
+    .query(&statement, &[&tag_title])
+    .await
+    .expect("Error creating tag")
+    .iter()
+    .map(|row| Tag::from_row_ref(row).unwrap())
+    .collect::<Vec<Tag>>()
+    .pop()
+    .ok_or(io::Error::new(io::ErrorKind::Other, "Error creating tag"))
 }

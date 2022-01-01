@@ -30,3 +30,26 @@ pub struct TagQuestion {
   pub tag_id: i32,
   pub question_id: i32,
 }
+
+#[derive(Serialize, Deserialize, PostgresMapper)]
+#[pg_mapper(table = "tag_question")]
+pub struct TagQuestionRelation {
+  pub tag_id: i32,
+  pub question_id: i32,
+  pub q_title: String,
+  pub q_description: String,
+  pub question_link: String,
+  pub votes: i32,
+  pub views: String,
+  pub tag_title: String,
+}
+
+#[derive(Deserialize)]
+pub struct CreateTag {
+  pub tag_title: String,
+}
+#[derive(Serialize)]
+pub struct ResultResponse {
+  pub message: String,
+  pub success: String,
+}

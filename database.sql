@@ -21,10 +21,10 @@ create table tag_question (
   question_id integer references question (question_id) on update cascade,
   constraint tag_question_pkey primary key (tag_id,question_id)
 );
-
+ 
 insert into tag (tag_title) values ('python'),('rust');
 
-insert into question (title,q_description,question_link,votes,views) values ('i dont know rust','we should know we other','https://stackoverflow.com/questions/21716853/error-syntax-error-at-or-near-when-creating-a-new-table',900,'1 million');
+insert into question_id (title,q_description,question_link,votes,views) values ('i dont know rust','we should know we other','https://stackoverflow.com/questions/21716853/error-syntax-error-at-or-near-when-creating-a-new-table',900,'1 million');
 
 
 insert into tag_question (tag_id,question_id) values (2,1);

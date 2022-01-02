@@ -9,7 +9,7 @@ This api serves the purpose of creating, updating, and reading the questions and
 4. Run the server by following `cargo run`
 
 #### Database Access
-use the
+use the following command by `sudo psql -h 127.0.0.1 -p 5432 -U actix actix` .password is actix. You can configure it in **docker-compose.yaml**
 
 #### Api Endpoints :
 1. Hello world : GET REQUEST `http://127.0.0.1:8000/`
@@ -31,3 +31,15 @@ use the
 
 #### Future Scopes 
 To integrate the stackoverflow scraper to get the question requested by the user and saving it in the database for future use.
+
+#### Api Response Test
+Benchmark on my system Intel(R) Core(TM) i3-7020U CPU @ 2.30GHz
+
+1. Simple deserialize - hello world get request
+  * 80000 requests per second with 30 concurrent requests
+
+2. DB Read  - get request
+  * 8500 requests per second with 30 concurrent requests
+
+3. Db Write from json - post request
+  * 5700 requests per second with 30 concurrent requests

@@ -1,10 +1,10 @@
-use crate::models::{CreateTag, Questions, Tag, TagQuestionRelation};
+use crate::models::{Questions, Tag, TagQuestionRelation};
 use deadpool_postgres::Client;
 use std::io;
 use tokio_pg_mapper::FromTokioPostgresRow;
 
 pub async fn get_tags(client: &Client) -> Result<Vec<Tag>, io::Error> {
-  let statement = client.prepare("select * from tag;").await.unwrap();
+  let statement = client.prepare("select * from tag limit 10;").await.unwrap();
 
   // query will take the query statement and a refrence to the list of parameters
 
@@ -71,18 +71,20 @@ pub async fn create_tag(client: &Client, tag_title: String) -> Result<Tag, io::E
     .ok_or(io::Error::new(io::ErrorKind::Other, "Error creating tag"))
 }
 
-pub async fn update_tag(client: &Client, tag_id: i32, tag_title: String) -> Result<Tag, io::Error> {
+pub async fn update_tag(client: &Client, tag_id: i32, tag_title: String) -> Result<(), io::Error> {
   let statement = client
-    .prepare("insert into tag (tag_title) values ($1) returning tag_id, tag_title;")
+    .prepare("update tag set tag_title = $2 where tag_id=$1;")
     .await
     .unwrap();
-  client
-    .query(&statement, &[&tag_title])
+  let result = client
+    .execute(&statement, &[&tag_id, &tag_title])
     .await
-    .expect("Error creating tag")
-    .iter()
-    .map(|row| Tag::from_row_ref(row).unwrap())
-    .collect::<Vec<Tag>>()
-    .pop()
-    .ok_or(io::Error::new(io::ErrorKind::Other, "Error creating tag"))
+    .expect("Error updating tag");
+  match result {
+    ref updated if *updated == 1 => Ok(()),
+    _ => Err(io::Error::new(
+      io::ErrorKind::Other,
+      "Failed to updated the title",
+    )),
+  }
 }

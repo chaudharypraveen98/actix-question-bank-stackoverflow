@@ -51,5 +51,5 @@ pub struct CreateTag {
 #[derive(Serialize)]
 pub struct ResultResponse {
   pub message: String,
-  pub success: String,
+  pub success: bool,
 }

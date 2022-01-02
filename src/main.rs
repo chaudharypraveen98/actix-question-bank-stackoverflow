@@ -46,6 +46,7 @@ async fn main() -> std::io::Result<()> {
                 "/questions/{tag_id}{_:/?}",
                 web::get().to(get_questions_by_tag),
             )
+            .route("/tags{_:/?}", web::put().to(update_tag))
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()

@@ -2,6 +2,7 @@ use crate::db;
 use crate::models::{CreateTag, ResultResponse, Status, Tag};
 use actix_web::{web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
+use std::io::ErrorKind::Other;
 
 pub async fn manual_hello() -> impl Responder {
   HttpResponse::Ok().json(Status {
@@ -84,6 +85,10 @@ pub async fn update_tag(db_pool: web::Data<Pool>, json: web::Json<Tag>) -> impl 
     Ok(()) => HttpResponse::Ok().json(ResultResponse {
       message: "updated sucessfully".to_string(),
       success: true,
+    }),
+    Err(ref e) if e.kind() == Other => HttpResponse::Ok().json(ResultResponse {
+      message: "updated failed".to_string(),
+      success: false,
     }),
     Err(_) => HttpResponse::InternalServerError().into(),
   }

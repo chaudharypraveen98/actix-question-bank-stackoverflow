@@ -3,21 +3,13 @@ mod db;
 mod handlers;
 mod models;
 
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_files as fs;
+
+use actix_web::{web, App, HttpServer};
 
 use crate::handlers::*;
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
-
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
-
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -36,9 +28,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(pool.clone())
-            .service(hello)
-            .service(echo)
-            .route("/hey", web::get().to(manual_hello))
+            .service(fs::Files::new("/static", "./static").show_files_listing())
+            .route("/", web::get().to(home_page))
             .route("/tags{_:/?}", web::get().to(get_tags))
             .route("/tags{_:/?}", web::post().to(create_tag))
             .route("/questions{_:/?}", web::get().to(get_questions))

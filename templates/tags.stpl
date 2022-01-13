@@ -1,0 +1,15 @@
+<html>
+  <head>
+    <title>Tags</title>
+    <link rel="stylesheet" href="../static/style.css">
+  </head>
+  <body class="main">
+    <h1>Tags List</h1>
+    <ol>
+    <% for (_index,tag) in tags_list.iter().enumerate() {%>
+      <li><%= tag.tag_title%></li>
+    <% } 
+    %>
+    </ol>
+  </body>
+</html>

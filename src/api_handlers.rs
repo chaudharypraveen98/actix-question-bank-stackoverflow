@@ -1,37 +1,19 @@
 use crate::db;
 use crate::models::Questions;
-use crate::models::TagQuestionRelation;
-use crate::models::{CreateTag, ResultResponse, Tag};
+use crate::models::{CreateTag, ResultResponse, Status, Tag};
 use actix_web::{web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
-use sailfish::TemplateOnce;
 use std::io::ErrorKind::Other;
 
-//  Templates Data
-#[derive(TemplateOnce)]
-#[template(path = "home.stpl")]
-struct Home {}
-
-#[derive(TemplateOnce)]
-#[template(path = "tags.stpl")]
-struct TagsTemplate {
-  tags_list: Vec<Tag>,
+pub async fn manual_hello() -> impl Responder {
+  HttpResponse::Ok().json(Status {
+    status: "UP".to_string(),
+  })
 }
 
-#[derive(TemplateOnce)]
-#[template(path = "questions.stpl")]
-struct QuestionTemplate {
-  questions_list: Vec<Questions>,
-}
-
-#[derive(TemplateOnce)]
-#[template(path = "question_by_tag.stpl")]
-struct QuestionByIdTemplate {
-  questions_list: Vec<TagQuestionRelation>,
-}
-
-pub async fn home_page() -> impl Responder {
-  HttpResponse::Ok().body(Home {}.render_once().unwrap())
+#[get("/")]
+async fn hello() -> impl Responder {
+  HttpResponse::Ok().body("Hello world!")
 }
 
 // we receive the db pool which extracting from the application data and specify pool type
@@ -44,10 +26,7 @@ pub async fn get_tags(db_pool: web::Data<Pool>) -> impl Responder {
   let result = db::get_tags(&client).await;
 
   match result {
-    Ok(tags) => {
-      let ctx = TagsTemplate { tags_list: tags }.render_once().unwrap();
-      HttpResponse::Ok().body(ctx)
-    }
+    Ok(tags) => HttpResponse::Ok().json(tags),
     Err(_) => HttpResponse::InternalServerError().into(),
   }
 }
@@ -61,6 +40,7 @@ pub async fn get_questions(db_pool: web::Data<Pool>) -> impl Responder {
   let result = db::get_questions(&client).await;
 
   match result {
+    // Ok(questions) => HttpResponse::Ok().json(questions),
     Ok(questions) => {
       let ctx = QuestionTemplate {
         questions_list: questions,
@@ -86,14 +66,7 @@ pub async fn get_questions_by_tag(
   let result = db::get_related_question(&client, path.0).await;
 
   match result {
-    Ok(questions) => {
-      let ctx = QuestionByIdTemplate {
-        questions_list: questions,
-      }
-      .render_once()
-      .unwrap();
-      HttpResponse::Ok().body(ctx)
-    }
+    Ok(questions) => HttpResponse::Ok().json(questions),
     Err(_) => HttpResponse::InternalServerError().into(),
   }
 }

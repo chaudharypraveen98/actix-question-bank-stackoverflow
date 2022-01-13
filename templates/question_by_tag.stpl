@@ -1,0 +1,15 @@
+<html>
+  <head>
+    <title>Home</title>
+    <link rel="stylesheet" href="../../static/style.css">
+  </head>
+  <body class="main">
+    <h1>Questions List</h1>
+    <ol>
+    <% for (_index,question) in questions_list.iter().enumerate() {%>
+      <li><%= question.q_title%></li>
+    <% } 
+    %>
+    </ol>
+  </body>
+</html>

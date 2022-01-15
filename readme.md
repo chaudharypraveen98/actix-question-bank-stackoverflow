@@ -28,6 +28,9 @@ use the following command by `sudo psql -h 127.0.0.1 -p 5432 -U actix actix` .pa
    * Sample body
    * ```{    "tag_title":"golang",    "tag_id":3}```
 
+#### Templating
+We have used the <a href="https://crates.io/crates/sailfish">Sailfish</a> templating engine (Simple, small, and extremely fast template engine for Rust).
+
 
 #### Future Scopes 
 To integrate the stackoverflow scraper to get the question requested by the user and saving it in the database for future use.

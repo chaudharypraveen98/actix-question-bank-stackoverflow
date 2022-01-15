@@ -4,6 +4,8 @@
     <link rel="stylesheet" href="../../static/style.css">
   </head>
   <body class="main">
+    <a href="./../">Home</a>
+    <a href="./">Questions List</a>
     <h1>Questions List</h1>
     <ol>
     <% for (_index,question) in questions_list.iter().enumerate() {%>

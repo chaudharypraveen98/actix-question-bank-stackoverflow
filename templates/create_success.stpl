@@ -1,0 +1,13 @@
+<html>
+  <head>
+    <title>Tags</title>
+    <link rel="stylesheet" href="../../static/style.css">
+  </head>
+  <body class="main">
+    <h1>Tags Created Successfull</h1>
+    <h2>Tag Id - <%= tag.tag_id%></h2>
+    <h2>Tag Title - <%= tag.tag_title%></h2>
+    <br> 
+    <a href="./tags">Go Back</a>
+  </body>
+</html>

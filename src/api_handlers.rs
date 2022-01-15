@@ -1,20 +1,9 @@
 use crate::db;
 use crate::models::Questions;
-use crate::models::{CreateTag, ResultResponse, Status, Tag};
+use crate::models::{CreateTag, ResultResponse, Tag};
 use actix_web::{web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
 use std::io::ErrorKind::Other;
-
-pub async fn manual_hello() -> impl Responder {
-  HttpResponse::Ok().json(Status {
-    status: "UP".to_string(),
-  })
-}
-
-#[get("/")]
-async fn hello() -> impl Responder {
-  HttpResponse::Ok().body("Hello world!")
-}
 
 // we receive the db pool which extracting from the application data and specify pool type
 pub async fn get_tags(db_pool: web::Data<Pool>) -> impl Responder {
@@ -40,15 +29,7 @@ pub async fn get_questions(db_pool: web::Data<Pool>) -> impl Responder {
   let result = db::get_questions(&client).await;
 
   match result {
-    // Ok(questions) => HttpResponse::Ok().json(questions),
-    Ok(questions) => {
-      let ctx = QuestionTemplate {
-        questions_list: questions,
-      }
-      .render_once()
-      .unwrap();
-      HttpResponse::Ok().body(ctx)
-    }
+    Ok(questions) => HttpResponse::Ok().json(questions),
     Err(_) => HttpResponse::InternalServerError().into(),
   }
 }

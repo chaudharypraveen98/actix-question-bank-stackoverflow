@@ -1,3 +1,4 @@
+mod api_handlers;
 mod config;
 mod db;
 mod handlers;
@@ -7,6 +8,7 @@ use actix_files as fs;
 
 use actix_web::{web, App, HttpServer};
 
+use crate::api_handlers as api;
 use crate::handlers::*;
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
@@ -37,7 +39,10 @@ async fn main() -> std::io::Result<()> {
                 "/questions/{tag_id}{_:/?}",
                 web::get().to(get_questions_by_tag),
             )
-            .route("/tags{_:/?}", web::put().to(update_tag))
+            .route("/api/tags{_:/?}", web::put().to(api::update_tag))
+            .route("/api/tags{_:/?}", web::get().to(api::get_tags))
+            .route("/api/tags{_:/?}", web::post().to(api::create_tag))
+            .route("/api/questions{_:/?}", web::get().to(api::get_questions))
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()

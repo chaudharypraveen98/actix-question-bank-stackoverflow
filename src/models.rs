@@ -43,6 +43,16 @@ pub struct TagQuestionRelation {
 pub struct CreateTag {
   pub tag_title: String,
 }
+
+#[derive(Deserialize)]
+pub struct CreateQuestion {
+  pub title: String,
+  pub q_description: String,
+  pub question_link: String,
+  pub votes: i32,
+  pub views: String,
+}
+
 #[derive(Serialize)]
 pub struct ResultResponse {
   pub message: String,

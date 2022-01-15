@@ -4,12 +4,19 @@
     <link rel="stylesheet" href="../static/style.css">
   </head>
   <body class="main">
+    <a href="./">Home</a>
     <h1>Questions List</h1>
-    <ol>
     <% for (_index,question) in questions_list.iter().enumerate() {%>
-      <li><%= question.title%></li>
+      <div>
+        <div>Id          - <%= question.question_id%></div>
+        <div>Title       - <%= question.title%></div>
+        <div>Description - <%= question.q_description%></div>
+        <div>Link        - <%= question.question_link%></div>
+        <div>Votes       - <%= question.votes%></div>
+        <div>Views       - <%= question.views%></div>
+      </div>
+      <p>---------------------------------------------</p>
     <% } 
-    %>
-    </ol>
+    %>   
   </body>
 </html>

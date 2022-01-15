@@ -30,6 +30,12 @@ struct QuestionByIdTemplate {
   questions_list: Vec<TagQuestionRelation>,
 }
 
+#[derive(TemplateOnce)]
+#[template(path = "create_success.stpl")]
+struct CreateTagTemplate {
+  tag: Tag,
+}
+
 pub async fn home_page() -> impl Responder {
   HttpResponse::Ok().body(Home {}.render_once().unwrap())
 }
@@ -100,16 +106,19 @@ pub async fn get_questions_by_tag(
 
 // we use json extractor to extract data from body
 // in the generics it contains the DTO(data transfer object) to exttract the values
-pub async fn create_tag(db_pool: web::Data<Pool>, json: web::Json<CreateTag>) -> impl Responder {
+pub async fn create_tag(db_pool: web::Data<Pool>, form: web::Form<CreateTag>) -> impl Responder {
   let client: Client = db_pool
     .get()
     .await
     .expect("Error connecting to the database");
 
-  let result = db::create_tag(&client, json.tag_title.clone()).await;
+  let result = db::create_tag(&client, form.tag_title.clone()).await;
 
   match result {
-    Ok(tag) => HttpResponse::Ok().json(tag),
+    Ok(tag) => {
+      let ctx = CreateTagTemplate { tag: tag }.render_once().unwrap();
+      HttpResponse::Ok().body(ctx)
+    }
     Err(_) => HttpResponse::InternalServerError().into(),
   }
 }

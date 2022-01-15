@@ -4,6 +4,7 @@
     <link rel="stylesheet" href="../static/style.css">
   </head>
   <body class="main">
+    <a href="./">Home</a>
     <h1>Tags List</h1>
     <ol>
     <% for (_index,tag) in tags_list.iter().enumerate() {%>
@@ -11,5 +12,13 @@
     <% } 
     %>
     </ol>
+
+    <h2>Create Tag</h2>
+
+    <form action="" method="POST" enctype="application/x-www-form-urlencoded" id="tag-form">
+      <label for="tag_title">Tag title:</label><br>
+      <input type="text" id="tag_title" name="tag_title" placeholder="tag title .."><br>
+      <button type="submit">submit</button>
+    </form>
   </body>
 </html>

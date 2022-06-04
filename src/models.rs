@@ -1,4 +1,6 @@
+use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
+use slog::Logger;
 use tokio_pg_mapper_derive::PostgresMapper;
 
 #[derive(Serialize, Deserialize, PostgresMapper)]
@@ -44,7 +46,7 @@ pub struct CreateTag {
   pub tag_title: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize,Deserialize,Debug)]
 pub struct CreateQuestion {
   pub title: String,
   pub q_description: String,
@@ -57,4 +59,10 @@ pub struct CreateQuestion {
 pub struct ResultResponse {
   pub message: String,
   pub success: bool,
+}
+
+
+pub struct AppState{
+  pub pool:Pool,
+  pub log:Logger
 }

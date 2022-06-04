@@ -23,4 +23,11 @@ tokio-pg-mapper-derive = "0.1.4"
 deadpool-postgres = { version="0.5.0", features = ["serde"]}
 tokio-postgres = "0.5.1"
 sailfish = "0.3.3"
+rand = "0.8.4"
+select = "0.6.0-alpha.1"
 actix-files = "0.2.2"
+reqwest = { version = "0.10", features = ["json"] }
+slog = "2.7.0"
+slog-term = "2.9.0"
+slog-async = "2.7.0"
+regex = "1.5.6"

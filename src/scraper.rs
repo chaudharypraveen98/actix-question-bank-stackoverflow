@@ -2,10 +2,10 @@ use rand::seq::SliceRandom;
 use select::document::Document;
 use slog::{Logger, info};
 use crate::models::CreateQuestion;
-use select::predicate::{Attr, Class, Name, Predicate};
+use select::predicate::{Class, Name, Predicate};
 use regex::{Captures, Regex};
 
-#[warn(unused_imports)]
+#[warn(unused_imports,dead_code)]
 fn views_count(views:&str)->i32{
     let re = Regex::new("(or|e)").unwrap();
     let result = re.replace_all(views, |cap: &Captures| {

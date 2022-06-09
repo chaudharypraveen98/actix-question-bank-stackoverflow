@@ -3,9 +3,9 @@ use crate::error::AppError;
 use crate::models::{AppState, CreateTag, Questions, ResultResponse, Tag, TagQuestionRelation};
 use crate::scraper;
 use actix_web::{web, HttpResponse, Responder};
-use deadpool_postgres::Client;
+use deadpool_postgres::{Client, Pool};
 use sailfish::TemplateOnce;
-use slog::info;
+use slog::{crit, info, o, Logger};
 
 //  Templates Data
 #[derive(TemplateOnce)]
@@ -40,11 +40,17 @@ pub async fn home_page() -> impl Responder {
     HttpResponse::Ok().body(Home {}.render_once().unwrap())
 }
 
-// we receive the db pool which extracting from the application data and specify pool type
+async fn configure_pool(pool: Pool, log: Logger) -> Result<Client, AppError> {
+    pool.get().await.map_err(|err| {
+        let sublog = log.new(o!("cause"=>err.to_string()));
+        crit!(sublog, "Error creating client");
+        AppError::from(err)
+    })
+}
+
 pub async fn get_tags(state: web::Data<AppState>) -> Result<impl Responder, AppError> {
-    // The `?` operator transparently invokes the `Into` trait
-    // on our behalf - we don't need an explicit `map_err` anymore.
-    let client: Client = state.pool.get().await.map_err(AppError::db_error)?;
+    let sublog = state.log.new(o!("handler" => "get_tags"));
+    let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
 
     let result = db::get_tags(&client).await;
 
@@ -59,7 +65,6 @@ pub async fn scrape_questions(state: web::Data<AppState>) -> impl Responder {
     let url = scraper::get_random_url(&state.log);
     let result = scraper::hacker_news(&state.log, &url, 10).await;
 
-    // The From and Into traits are inherently linked, used for converting between several types but Using the Into trait will typically require specification of the type to convert into as the compiler is unable to determine this most of the time.
     match result {
         Ok(questions) => HttpResponse::Ok().json(questions),
         Err(_) => HttpResponse::InternalServerError().into(),
@@ -67,7 +72,8 @@ pub async fn scrape_questions(state: web::Data<AppState>) -> impl Responder {
 }
 
 pub async fn get_questions(state: web::Data<AppState>) -> Result<impl Responder, AppError> {
-    let client: Client = state.pool.get().await.map_err(AppError::db_error)?;
+    let sublog = state.log.new(o!("handler" => "get_questions"));
+    let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
 
     let result = db::get_questions(&client).await;
 
@@ -86,7 +92,8 @@ pub async fn get_questions_by_tag(
     state: web::Data<AppState>,
     path: web::Path<(i32,)>,
 ) -> Result<impl Responder, AppError> {
-    let client: Client = state.pool.get().await.map_err(AppError::db_error)?;
+    let sublog = state.log.new(o!("handler" => "get_questions_by_tag"));
+    let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
 
     let result = db::get_related_question(&client, path.0).await;
 
@@ -106,7 +113,8 @@ pub async fn create_tag(
     state: web::Data<AppState>,
     form: web::Form<CreateTag>,
 ) -> Result<impl Responder, AppError> {
-    let client: Client = state.pool.get().await.map_err(AppError::db_error)?;
+    let sublog = state.log.new(o!("handler" => "create_tag"));
+    let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
 
     let result = db::create_tag(&client, form.tag_title.clone()).await;
 
@@ -116,12 +124,12 @@ pub async fn create_tag(
     })
 }
 
-#[warn(unused_imports)]
 pub async fn update_tag(
     state: web::Data<AppState>,
     json: web::Json<Tag>,
 ) -> Result<impl Responder, AppError> {
-    let client: Client = state.pool.get().await.map_err(AppError::db_error)?;
+    let sublog = state.log.new(o!("handler" => "update_tag"));
+    let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
 
     let result = db::update_tag(&client, json.tag_id.clone(), json.tag_title.clone()).await;
 

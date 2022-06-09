@@ -15,7 +15,9 @@
 use core::fmt;
 
 use actix_web::{error::ResponseError, http::StatusCode, HttpResponse};
+use deadpool_postgres::PoolError;
 use serde::Serialize;
+use tokio_postgres::Error;
 
 #[derive(Debug)]
 pub enum AppErrorType {
@@ -36,10 +38,10 @@ pub struct AppErrorResponse {
     pub error: String,
 }
 impl AppError {
-  // we are handling the none. function name should match field name
+    // we are handling the none. function name should match field name
     fn message(&self) -> String {
         match &*self {
-          // Error message is found then clone otherwise default message
+            // Error message is found then clone otherwise default message
             AppError {
                 cause: _,
                 message: Some(message),
@@ -50,18 +52,19 @@ impl AppError {
                 cause: _,
                 message: None,
                 error_type: AppErrorType::NotFoundError,
-            } => "The required item not found".to_string(),
+            } => "The requested item was not found".to_string(),
             _ => "An unexpected error has occured".to_string(),
         }
     }
+    // This db_error is used when we haven't implmented the From trait 
 
-    pub fn db_error(error: impl ToString) -> AppError {
-        AppError {
-            cause: Some(error.to_string()),
-            message: None,
-            error_type: AppErrorType::DbError,
-        }
-    }
+    // pub fn db_error(error: impl ToString) -> AppError {
+    //     AppError {
+    //         cause: Some(error.to_string()),
+    //         message: None,
+    //         error_type: AppErrorType::DbError,
+    //     }
+    // }
 }
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -82,5 +85,25 @@ impl ResponseError for AppError {
         HttpResponse::build(self.status_code()).json(AppErrorResponse {
             error: self.message(),
         })
+    }
+}
+
+// It is a converter used to convert one type to another. Here we are converting the PoolError to AppError
+impl From<PoolError> for AppError {
+    fn from(error: PoolError) -> AppError {
+        AppError {
+            message: None,
+            cause: Some(error.to_string()),
+            error_type: AppErrorType::DbError,
+        }
+    }
+}
+impl From<Error> for AppError {
+    fn from(error: Error) -> AppError {
+        AppError {
+            message: None,
+            cause: Some(error.to_string()),
+            error_type: AppErrorType::DbError,
+        }
     }
 }

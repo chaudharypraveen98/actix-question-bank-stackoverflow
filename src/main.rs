@@ -59,6 +59,7 @@ async fn main() -> std::io::Result<()> {
             .route("/scrape{_:/?}", web::get().to(scrape_questions))
             .route("/tags{_:/?}", web::get().to(get_tags))
             .route("/tags{_:/?}", web::post().to(create_tag))
+            .route("/tags/update/{tag_id}{_:/?}", web::post().to(update_tag))
             .route("/questions{_:/?}", web::get().to(get_questions))
             .route(
                 "/questions/{tag_id}{_:/?}",

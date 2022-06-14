@@ -1,5 +1,5 @@
 use crate::db;
-use crate::error::AppError;
+use crate::error::{AppError};
 use crate::models::{AppState, CreateTag, ResultResponse, Tag};
 use actix_web::{web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
@@ -16,6 +16,7 @@ async fn configure_pool(pool: Pool, log: Logger) -> Result<Client, AppError> {
 
 // we receive the db pool which extracting from the application data and specify pool type
 pub async fn get_tags(state: web::Data<AppState>) -> Result<impl Responder, AppError> {
+
     // METHOD 1 is to explicitly convert the Deadpool Error to App Error in the handler Like the below
 
     // let client: Client = state.pool.get().await.map_err(|err|  AppError {

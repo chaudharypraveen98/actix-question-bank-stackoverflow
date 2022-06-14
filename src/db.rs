@@ -26,7 +26,6 @@ pub async fn get_tags(client: &Client) -> Result<Vec<Tag>, AppError> {
 
     Ok(tags)
 }
-
 pub async fn get_questions(client: &Client) -> Result<Vec<Questions>, AppError> {
     let statement = client.prepare("select * from question;").await?;
     let questions = client

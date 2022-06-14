@@ -25,8 +25,8 @@ pub enum AppErrorType {
     NotFoundError,
 }
 
+// Struct type is already defined Option<String> and AppErrorType. We can also define later.
 #[derive(Debug)]
-// Struct type is already defined
 pub struct AppError {
     pub cause: Option<String>,
     pub message: Option<String>,
@@ -47,7 +47,6 @@ impl AppError {
                 message: Some(message),
                 error_type: _,
             } => message.clone(),
-            // we are handling the dbError type
             AppError {
                 cause: _,
                 message: None,
@@ -105,5 +104,98 @@ impl From<Error> for AppError {
             cause: Some(error.to_string()),
             error_type: AppErrorType::DbError,
         }
+    }
+}
+
+impl From<PoolError> for AppErrorType {
+    fn from(_error: PoolError) -> AppErrorType {
+        AppErrorType::DbError
+    }
+}
+impl From<Error> for AppErrorType {
+    fn from(_error: Error) -> AppErrorType {
+        AppErrorType::DbError
+    }
+}
+impl fmt::Display for AppErrorType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl ResponseError for AppErrorType {
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::build(self.status_code()).finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::{AppError, AppErrorType};
+    use actix_web::error::ResponseError;
+
+    #[test]
+    fn test_default_db_error() {
+        let db_error = AppError {
+            message: None,
+            cause: None,
+            error_type: AppErrorType::DbError,
+        };
+
+        assert_eq!(
+            db_error.message(),
+            "An unexpected error has occured".to_string(),
+            "Default message should be shown"
+        );
+    }
+
+    #[test]
+    fn test_default_not_found_error() {
+        let db_error = AppError {
+            message: None,
+            cause: None,
+            error_type: AppErrorType::NotFoundError,
+        };
+
+        assert_eq!(
+            db_error.message(),
+            "The requested item was not found".to_string(),
+            "Default message should be shown"
+        );
+    }
+
+    #[test]
+    fn test_user_db_error() {
+        let user_message = "User-facing message".to_string();
+
+        let db_error = AppError {
+            message: Some(user_message.clone()),
+            cause: None,
+            error_type: AppErrorType::DbError,
+        };
+
+        assert_eq!(
+            db_error.message(),
+            user_message,
+            "User-facing message should be shown"
+        );
+    }
+
+    #[test]
+    fn test_db_error_status_code() {
+        let expected = 500;
+
+        let db_error = AppError {
+            message: None,
+            cause: None,
+            error_type: AppErrorType::DbError,
+        };
+
+        assert_eq!(
+            db_error.status_code(),
+            expected,
+            "Status code for DbError should be {}",
+            expected
+        );
     }
 }

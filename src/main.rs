@@ -1,6 +1,7 @@
 extern crate regex;
 extern crate reqwest;
 extern crate select;
+extern crate validator;
 mod api_handlers;
 mod config;
 mod db;

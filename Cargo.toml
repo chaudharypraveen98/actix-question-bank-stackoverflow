@@ -1,5 +1,5 @@
 [package]
-name = "actix-stackoverflow-api"
+name = "actix-question-bank-stackoverflow"
 version = "0.1.0"
 edition = "2021"
 
@@ -31,3 +31,4 @@ slog = "2.7.0"
 slog-term = "2.9.0"
 slog-async = "2.7.0"
 regex = "1.5.6"
+validator = { version = "0.15", features = ["derive"] }

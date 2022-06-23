@@ -18,10 +18,12 @@ use actix_web::{error::ResponseError, http::StatusCode, HttpResponse};
 use deadpool_postgres::PoolError;
 use serde::Serialize;
 use tokio_postgres::Error;
+use validator::ValidationErrors;
 
 #[derive(Debug)]
 pub enum AppErrorType {
     DbError,
+    ValidationError,
     NotFoundError,
 }
 
@@ -52,10 +54,15 @@ impl AppError {
                 message: None,
                 error_type: AppErrorType::NotFoundError,
             } => "The requested item was not found".to_string(),
+            AppError {
+                cause: Some(cause),
+                message: None,
+                error_type: AppErrorType::ValidationError,
+            } => cause.clone(),
             _ => "An unexpected error has occured".to_string(),
         }
     }
-    // This db_error is used when we haven't implmented the From trait 
+    // This db_error is used when we haven't implmented the From trait
 
     // pub fn db_error(error: impl ToString) -> AppError {
     //     AppError {
@@ -77,6 +84,7 @@ impl ResponseError for AppError {
         match self.error_type {
             AppErrorType::DbError => (StatusCode::INTERNAL_SERVER_ERROR),
             AppErrorType::NotFoundError => (StatusCode::NOT_FOUND),
+            AppErrorType::ValidationError => (StatusCode::LENGTH_REQUIRED),
         }
     }
 
@@ -103,6 +111,15 @@ impl From<Error> for AppError {
             message: None,
             cause: Some(error.to_string()),
             error_type: AppErrorType::DbError,
+        }
+    }
+}
+impl From<ValidationErrors> for AppError {
+    fn from(error: ValidationErrors) -> AppError {
+        AppError {
+            message: None,
+            cause: Some(error.to_string()),
+            error_type: AppErrorType::ValidationError,
         }
     }
 }

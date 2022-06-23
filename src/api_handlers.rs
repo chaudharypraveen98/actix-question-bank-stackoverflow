@@ -1,9 +1,10 @@
 use crate::db;
-use crate::error::{AppError};
+use crate::error::AppError;
 use crate::models::{AppState, CreateTag, ResultResponse, Tag};
 use actix_web::{web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
-use slog::{crit, o, Logger};
+use slog::{crit, info, o, Logger};
+use validator::Validate;
 
 async fn configure_pool(pool: Pool, log: Logger) -> Result<Client, AppError> {
     pool.get().await.map_err(|err| {
@@ -16,7 +17,6 @@ async fn configure_pool(pool: Pool, log: Logger) -> Result<Client, AppError> {
 
 // we receive the db pool which extracting from the application data and specify pool type
 pub async fn get_tags(state: web::Data<AppState>) -> Result<impl Responder, AppError> {
-
     // METHOD 1 is to explicitly convert the Deadpool Error to App Error in the handler Like the below
 
     // let client: Client = state.pool.get().await.map_err(|err|  AppError {
@@ -35,6 +35,7 @@ pub async fn get_tags(state: web::Data<AppState>) -> Result<impl Responder, AppE
     let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
 
     let result = db::get_tags(&client).await;
+    info!(sublog, "{:?}", result);
 
     result.map(|tags| HttpResponse::Ok().json(tags))
 }
@@ -68,11 +69,20 @@ pub async fn create_tag(
     json: web::Json<CreateTag>,
 ) -> Result<impl Responder, AppError> {
     let sublog = state.log.new(o!("handler" => "create_tag"));
+
     let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
-
-    let result = db::create_tag(&client, json.tag_title.clone()).await;
-
-    result.map(|tag| HttpResponse::Ok().json(tag))
+    let is_valid = json.validate().map_err(|err| AppError::from(err));
+    match is_valid {
+        Ok(_) => {
+            let result = db::create_tag(&client, json.tag_title.clone()).await;
+            info!(sublog, "{:?}", result);
+            result.map(|tag| HttpResponse::Ok().json(tag))
+        }
+        Err(err) => {
+            crit!(sublog, "{:?}", err);
+            Err(err)
+        },
+    }
 }
 
 pub async fn update_tag(

@@ -35,7 +35,6 @@ pub async fn get_tags(state: web::Data<AppState>) -> Result<impl Responder, AppE
     let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
 
     let result = db::get_tags(&client).await;
-    info!(sublog, "{:?}", result);
 
     result.map(|tags| HttpResponse::Ok().json(tags))
 }

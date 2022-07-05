@@ -1,3 +1,4 @@
+extern crate cron;
 extern crate regex;
 extern crate reqwest;
 extern crate select;
@@ -11,13 +12,15 @@ mod models;
 mod scraper;
 
 use actix_files as fs;
-
-use actix_web::{web, App, HttpServer};
+use deadpool_postgres::Runtime;
 
 use crate::api_handlers as api;
 use crate::handlers::*;
 use crate::models::AppState;
+use actix_web::{web, App, HttpServer};
+use cron::Schedule;
 use dotenv::dotenv;
+use std::str::FromStr;
 use tokio_postgres::NoTls;
 
 // IT is used as a logging middleware. We can even use the default logger with actix. keyword fuse is used to painck
@@ -33,11 +36,11 @@ fn configure_log() -> Logger {
     slog::Logger::root(console_drain, o!("v"=>env!("CARGO_PKG_VERSION")))
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
     let config = crate::config::Config::from_env().unwrap();
-    let pool = config.pg.create_pool(NoTls).unwrap();
+    let pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
 
     let log = configure_log();
 
@@ -51,10 +54,10 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .data(AppState {
+            .app_data(web::Data::new(AppState {
                 pool: pool.clone(),
                 log: log.clone(),
-            })
+            }))
             .service(fs::Files::new("/static", "./static").show_files_listing())
             .route("/", web::get().to(home_page))
             .route("/scrape{_:/?}", web::get().to(scrape_questions))

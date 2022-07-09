@@ -2,7 +2,7 @@ version: "3.1"
 services:
   postgres:
     image: postgres:12.9
-    restart: always
+    restart: on-failure
     environment:
       POSTGRES_PASSWORD: actix
       POSTGRES_USER: actix

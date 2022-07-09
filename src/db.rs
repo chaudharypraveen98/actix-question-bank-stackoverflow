@@ -1,6 +1,6 @@
 use crate::{
     error::{AppError, AppErrorType},
-    models::{Questions, Tag, TagQuestionRelation},
+    models::{QuestionId, Questions, ScrapedQuestion, Tag, TagQuestion, TagQuestionRelation, TagId},
 };
 use deadpool_postgres::Client;
 use tokio_pg_mapper::FromTokioPostgresRow;
@@ -44,7 +44,7 @@ pub async fn get_related_question(
     tag_id: i32,
 ) -> Result<Vec<TagQuestionRelation>, AppError> {
     let statement = client
-    .prepare("select qt.tag_id,qt.question_id, t.tag_title, q.title as q_title,q.q_description, q.question_link, q.votes,q.views from tag_question qt, tag t, question q
+    .prepare("select qt.tag_id,qt.question_id, t.tag_title, q.title as q_title,q.q_description, q.question_link, q.votes,q.views,q.stack_id,q.answer from tag_question qt, tag t, question q
     where qt.tag_id = $1 and qt.question_id = q.question_id and qt.tag_id=t.tag_id;")
     .await
     ?;
@@ -84,6 +84,78 @@ pub async fn update_tag(client: &Client, tag_id: i32, tag_title: String) -> Resu
         .await?;
     let result = client
         .execute(&statement, &[&tag_id, &tag_title])
+        .await
+        .expect("Error updating tag");
+    match result {
+        ref updated if *updated == 1 => Ok(true),
+        _ => Ok(false),
+    }
+}
+
+// It will create or get tag id
+pub async fn get_tag_id(client: &Client, tag_name: String) -> Result<TagId, AppError> {
+    let statement = client
+        .prepare("with s as (select tag_id from tag where tag_title = $1), i as (insert into tag (tag_title) select $1 where not exists (select 1 from s) returning tag_id) select tag_id from i union all select tag_id from s;")
+        .await?;
+    println!("tag name {:?}",tag_name);
+
+    client
+        .query(&statement, &[&tag_name])
+        .await
+        .expect("Error creating tag")
+        .iter()
+        .map(|row| TagId::from_row_ref(row).unwrap())
+        .collect::<Vec<TagId>>()
+        .pop()
+        .ok_or(AppError {
+            cause: Some("Unknown error".to_string()),
+            message: Some("Error creating todolist".to_string()),
+            error_type: AppErrorType::DbError,
+        })
+}
+
+pub async fn create_or_skip(
+    client: &Client,
+    question: &ScrapedQuestion,
+) -> Result<QuestionId, AppError> {
+    let statement = client
+        .prepare(
+            "insert into question (title,q_description,question_link,votes,stack_id,views,answer) values ($1,$2,$3,$4,$5,$6,$7) on conflict (stack_id) do nothing returning question_id")
+        .await?;
+    client
+        .query(
+            &statement,
+            &[
+                &question.title,
+                &question.q_description,
+                &question.question_link,
+                &question.votes,
+                &question.stack_id,
+                &question.views,
+                &question.answer,
+            ],
+        )
+        .await
+        .expect("Error creating tag")
+        .iter()
+        .map(|row| QuestionId::from_row_ref(row).unwrap())
+        .collect::<Vec<QuestionId>>()
+        .pop()
+        .ok_or(AppError {
+            cause: Some("Unknown error".to_string()),
+            message: Some("Error creating todolist".to_string()),
+            error_type: AppErrorType::DbError,
+        })
+}
+pub async fn create_tag_quest_rel(
+    client: &Client,
+    question: &TagQuestion,
+) -> Result<bool, AppError> {
+    let statement = client
+        .prepare("insert into tag_question (tag_id,question_id) values ($1,$2);")
+        .await?;
+    let result = client
+        .execute(&statement, &[&question.tag_id, &question.question_id])
         .await
         .expect("Error updating tag");
     match result {

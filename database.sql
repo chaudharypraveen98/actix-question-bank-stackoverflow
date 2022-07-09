@@ -4,7 +4,7 @@ drop table if exists tag_question cascade;
 
 create table tag (
   tag_id serial primary key,
-  tag_title varchar(30) not null
+  tag_title varchar(30) not null unique
 );
 
 create table question (
@@ -13,7 +13,9 @@ create table question (
   q_description varchar(1000) not null,
   question_link varchar(200) not null,
   votes integer not null,
-  views varchar(20) not null
+  stack_id integer not null unique,
+  views varchar(20) not null,
+  answer integer not null
 );
 
 create table tag_question (
@@ -24,7 +26,15 @@ create table tag_question (
  
 insert into tag (tag_title) values ('python'),('rust');
 
-insert into question (title,q_description,question_link,votes,views) values ('i dont know rust','we should know we other','https://stackoverflow.com/questions/21716853/error-syntax-error-at-or-near-when-creating-a-new-table',900,'1 million');
+insert into question (title,q_description,question_link,votes,stack_id,views,answer) values (
+  'i dont know rust',
+  'we should know we other',
+  'https://stackoverflow.com/questions/21716853/error-syntax-error-at-or-near-when-creating-a-new-table',
+  900,
+  898765,
+  '1 million',
+  67
+);
 
 
-insert into tag_question (tag_id,question_id) values (2,1);
+insert into tag_question (tag_id,question_id) values (1,1);

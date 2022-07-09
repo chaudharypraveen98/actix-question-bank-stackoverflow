@@ -1,7 +1,11 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::db;
 use crate::error::AppError;
-use crate::models::{AppState, CreateTag, Questions, ResultResponse, Tag, TagQuestionRelation};
-use crate::scraper;
+use crate::models::{
+    AppState, CreateTag, Questions, ResultResponse, ScrapedQuestion, Tag, TagQuestionRelation, TagQuestion,
+};
+use crate::scraper::{get_random_url, hacker_news};
 use actix_web::{web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
 use sailfish::TemplateOnce;
@@ -60,15 +64,52 @@ pub async fn get_tags(state: web::Data<AppState>) -> Result<impl Responder, AppE
     })
 }
 
-pub async fn scrape_questions(state: web::Data<AppState>) -> impl Responder {
-    info!(state.log, "check done");
-    let url = scraper::get_random_url(&state.log);
-    let result = scraper::hacker_news(&state.log, &url, 10).await;
-
-    match result {
-        Ok(questions) => HttpResponse::Ok().json(questions),
-        Err(_) => HttpResponse::InternalServerError().into(),
+pub async fn scrape_questions(state: web::Data<AppState>) -> Result<impl Responder, AppError> {
+    let sublog = state.log.new(o!("handler" => "scrape_questions"));
+    let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
+    let url = get_random_url(&state.log);
+    let mut result = hacker_news(&state.log, &url, 10).await.unwrap();
+    let unique_tags = &mut result.unique_tags;
+    let questions = &result.questions;
+    let mut index_table:HashMap<String, i32> = HashMap::new();
+    for question in questions {
+        print!("testing started",);
+        let question_id_res = db::create_or_skip(&client, &question).await;
+        print!("l{:?}l", question);
+        if let Ok(question_id_res) = question_id_res {
+            let question_id = question_id_res.question_id;
+            info!(sublog, "is ok{:?}", question_id);
+            for tag in &question.tags {
+                if unique_tags.get(tag) != Some(&0) {
+                    println!("{:?}",unique_tags);
+                    *unique_tags.entry(tag.clone()).or_insert(0) -= 1;
+                    let tag_id:i32;
+                    println!("{:?} {:?}",unique_tags,index_table);
+                    if index_table.contains_key(tag){
+                         match index_table.get(tag) {
+                            Some(val)=> {tag_id = val.clone()},
+                            None => {tag_id=-1}
+                         }
+                    } else {
+                        let res = db::get_tag_id(&client, tag.clone()).await.unwrap();
+                        println!("Tag Object{:?}",res);
+                        tag_id = res.tag_id as i32;
+                        index_table.insert(tag.to_owned(), tag_id);
+                    }
+                    println!("tag {:?}",tag_id);
+                    let tag_question = TagQuestion{
+                        tag_id:i32::from(tag_id),
+                        question_id
+                    };
+                    match db::create_tag_quest_rel(&client, &tag_question).await  {
+                        Ok(_)=>println!("created"),
+                        Err(_) => println!("Failed"),
+                    }
+                }
+            }
+        }
     }
+    Ok(HttpResponse::Ok().json(result))
 }
 
 pub async fn get_questions(state: web::Data<AppState>) -> Result<impl Responder, AppError> {

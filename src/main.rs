@@ -1,8 +1,10 @@
 extern crate cron;
+extern crate cronjob;
 extern crate regex;
 extern crate reqwest;
 extern crate select;
 extern crate validator;
+
 mod api_handlers;
 mod config;
 mod db;
@@ -11,16 +13,15 @@ mod handlers;
 mod models;
 mod scraper;
 
-use actix_files as fs;
-use deadpool_postgres::Runtime;
-
 use crate::api_handlers as api;
 use crate::handlers::*;
 use crate::models::AppState;
+use actix_files as fs;
 use actix_web::{web, App, HttpServer};
-use cron::Schedule;
+
+use cronjob::CronJob;
+use deadpool_postgres::Runtime;
 use dotenv::dotenv;
-use std::str::FromStr;
 use tokio_postgres::NoTls;
 
 // IT is used as a logging middleware. We can even use the default logger with actix. keyword fuse is used to painck
@@ -35,7 +36,10 @@ fn configure_log() -> Logger {
     let console_drain = slog_async::Async::new(console_drain).build().fuse();
     slog::Logger::root(console_drain, o!("v"=>env!("CARGO_PKG_VERSION")))
 }
+fn on_cron(name: &str) {
+    println!("{}: It's time!", name);
 
+}
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -48,7 +52,19 @@ async fn main() -> std::io::Result<()> {
         log,
         "Starting the server at http://{}:{}/", config.server.host, config.server.port
     );
-
+    let mut cron = CronJob::new("Test Cron", on_cron);
+    cron.seconds("0");
+    cron.minutes("1/5");
+    cron.hours("*");
+    // Set offset for UTC
+    cron.offset(0);
+    // Start the cronjob
+    CronJob::start_job_threaded(cron);
+    info!(
+        log,
+        "Testing"
+    );
+    
     // we need to pass the ownership so we use the move
     // AS the web server make instance for each thread to we need to pass the pool
 

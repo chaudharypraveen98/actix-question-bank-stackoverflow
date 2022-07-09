@@ -1,3 +1,5 @@
+use std::collections::{HashSet, HashMap};
+
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use slog::Logger;
@@ -13,6 +15,8 @@ pub struct Questions {
     pub question_link: String,
     pub votes: i32,
     pub views: String,
+    pub stack_id: i32,
+    pub answer: i32,
 }
 
 #[derive(Serialize, Deserialize, PostgresMapper,Debug)]
@@ -20,6 +24,11 @@ pub struct Questions {
 pub struct Tag {
     pub tag_id: i32,
     pub tag_title: String,
+}
+#[derive(Serialize, Deserialize, PostgresMapper,Debug)]
+#[pg_mapper(table = "tag")]
+pub struct TagId {
+    pub tag_id: i32,
 }
 
 #[derive(Serialize, Deserialize, PostgresMapper)]
@@ -40,6 +49,8 @@ pub struct TagQuestionRelation {
     pub votes: i32,
     pub views: String,
     pub tag_title: String,
+    pub stack_id: i32,
+    pub answer: i32,
 }
 
 #[derive(Validate, Deserialize)]
@@ -55,6 +66,8 @@ pub struct CreateQuestion {
     pub question_link: String,
     pub votes: i32,
     pub views: String,
+    pub answer: i32,
+    pub stack_id: i32,
 }
 
 #[derive(Serialize)]
@@ -66,4 +79,27 @@ pub struct ResultResponse {
 pub struct AppState {
     pub pool: Pool,
     pub log: Logger,
+}
+
+#[derive(Debug,Serialize, Deserialize)]
+pub struct ScraperResult {
+    pub questions: Vec<ScrapedQuestion>,
+    pub unique_tags:HashMap<String,i32>
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ScrapedQuestion {
+    pub title: String,
+    pub q_description: String,
+    pub question_link: String,
+    pub votes: i32,
+    pub stack_id: i32,
+    pub views: String,
+    pub tags: HashSet<String>,
+    pub answer: i32,
+}
+
+#[derive(Debug,PostgresMapper)]
+#[pg_mapper(table = "question")]
+pub struct QuestionId {
+    pub question_id: i32 
 }

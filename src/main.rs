@@ -1,5 +1,3 @@
-extern crate cron;
-extern crate cronjob;
 extern crate regex;
 extern crate reqwest;
 extern crate select;
@@ -12,14 +10,19 @@ mod error;
 mod handlers;
 mod models;
 mod scraper;
+// mod scheduler;
+
+use std::time::Duration;
 
 use crate::api_handlers as api;
 use crate::handlers::*;
 use crate::models::AppState;
+// use crate::scheduler::Scheduler;
+// use actix::Actor;
 use actix_files as fs;
+use actix_rt::time;
 use actix_web::{web, App, HttpServer};
 
-use cronjob::CronJob;
 use deadpool_postgres::Runtime;
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
@@ -36,10 +39,7 @@ fn configure_log() -> Logger {
     let console_drain = slog_async::Async::new(console_drain).build().fuse();
     slog::Logger::root(console_drain, o!("v"=>env!("CARGO_PKG_VERSION")))
 }
-fn on_cron(name: &str) {
-    println!("{}: It's time!", name);
 
-}
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -52,19 +52,23 @@ async fn main() -> std::io::Result<()> {
         log,
         "Starting the server at http://{}:{}/", config.server.host, config.server.port
     );
-    let mut cron = CronJob::new("Test Cron", on_cron);
-    cron.seconds("0");
-    cron.minutes("1/5");
-    cron.hours("*");
-    // Set offset for UTC
-    cron.offset(0);
-    // Start the cronjob
-    CronJob::start_job_threaded(cron);
-    info!(
-        log,
-        "Testing"
-    );
+    // let scheduler_obj = Scheduler {pool:pool.clone(),log:log.clone()};
+    // Scheduler::start(scheduler_obj);
     
+    actix_rt::spawn(async move {
+        let mut interval = time::interval(Duration::from_secs(120));
+        let new_pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
+
+        let new_log = configure_log();
+        loop {
+            interval.tick().await;
+            println!("120 seconds");
+            scrape_questions(new_pool.clone(), new_log.clone()).await.unwrap();
+        }
+    });
+
+    info!(log, "Testing");
+
     // we need to pass the ownership so we use the move
     // AS the web server make instance for each thread to we need to pass the pool
 
@@ -76,7 +80,7 @@ async fn main() -> std::io::Result<()> {
             }))
             .service(fs::Files::new("/static", "./static").show_files_listing())
             .route("/", web::get().to(home_page))
-            .route("/scrape{_:/?}", web::get().to(scrape_questions))
+            // .route("/scrape{_:/?}", web::get().to(scrape_questions))
             .route("/tags{_:/?}", web::get().to(get_tags))
             .route("/tags{_:/?}", web::post().to(create_tag))
             .route("/tags/update/{tag_id}{_:/?}", web::post().to(update_tag))

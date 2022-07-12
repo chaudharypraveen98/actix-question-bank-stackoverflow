@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
 use crate::db;
 use crate::error::AppError;
@@ -64,11 +64,11 @@ pub async fn get_tags(state: web::Data<AppState>) -> Result<impl Responder, AppE
     })
 }
 
-pub async fn scrape_questions(state: web::Data<AppState>) -> Result<impl Responder, AppError> {
-    let sublog = state.log.new(o!("handler" => "scrape_questions"));
-    let client: Client = configure_pool(state.pool.clone(), sublog.clone()).await?;
-    let url = get_random_url(&state.log);
-    let mut result = hacker_news(&state.log, &url, 10).await.unwrap();
+pub async fn scrape_questions(pool:Pool,log:Logger) -> Result<(), AppError> {
+    let sublog = log.new(o!("handler" => "scrape_questions"));
+    let client: Client = configure_pool(pool.clone(), sublog.clone()).await?;
+    let url = get_random_url(&log);
+    let mut result = hacker_news(&log, &url, 10).await.unwrap();
     let unique_tags = &mut result.unique_tags;
     let questions = &result.questions;
     let mut index_table:HashMap<String, i32> = HashMap::new();
@@ -109,7 +109,7 @@ pub async fn scrape_questions(state: web::Data<AppState>) -> Result<impl Respond
             }
         }
     }
-    Ok(HttpResponse::Ok().json(result))
+    Ok(())
 }
 
 pub async fn get_questions(state: web::Data<AppState>) -> Result<impl Responder, AppError> {

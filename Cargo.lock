@@ -183,12 +183,10 @@ version = "0.1.0"
 dependencies = [
  "actix-files",
  "actix-http 1.0.1",
+ "actix-rt 2.7.0",
  "actix-service 2.0.2",
  "actix-web",
- "chrono",
  "config",
- "cron",
- "cronjob",
  "deadpool-postgres",
  "dotenv",
  "futures",
@@ -243,6 +241,7 @@ version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ea16c295198e958ef31930a6ef37d0fb64e9ca3b6116e6b93a8bdae96ee1000"
 dependencies = [
+ "actix-macros 0.2.3",
  "futures-core",
  "tokio 1.19.2",
 ]
@@ -623,7 +622,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b1b9d958c2b1368a663f05538fc1b5975adce1e19f435acceae987aceeeb369"
 dependencies = [
  "lazy_static",
- "nom 5.1.2",
+ "nom",
  "rust-ini",
  "serde 1.0.132",
  "serde-hjson",
@@ -687,27 +686,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "738c290dfaea84fc1ca15ad9c168d083b05a714e1efddd8edaab678dc28d2836"
 dependencies = [
  "cfg-if 1.0.0",
-]
-
-[[package]]
-name = "cron"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d76219e9243e100d5a37676005f08379297f8addfebc247613299600625c734d"
-dependencies = [
- "chrono",
- "nom 7.1.1",
- "once_cell",
-]
-
-[[package]]
-name = "cronjob"
-version = "0.4.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e596f513d5b176f3cb139af86439c9f97c1ba61ff15eb266059afc8fab27f6dc"
-dependencies = [
- "chrono",
- "cron",
 ]
 
 [[package]]
@@ -1577,12 +1555,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "minimal-lexical"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
 name = "miniz_oxide"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1690,16 +1662,6 @@ dependencies = [
  "lexical-core",
  "memchr",
  "version_check",
-]
-
-[[package]]
-name = "nom"
-version = "7.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8903e5a29a317527874d0402f867152a3d21c908bb0b933e416c65e301d4c36"
-dependencies = [
- "memchr",
- "minimal-lexical",
 ]
 
 [[package]]

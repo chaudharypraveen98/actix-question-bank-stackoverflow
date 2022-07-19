@@ -94,7 +94,7 @@ pub fn get_random_url(log: &Logger) -> String {
     let default_tags = vec!["python", "rust", "c#", "android", "html", "javascript"];
     let random_tag = default_tags.choose(&mut rand::thread_rng()).unwrap();
     let url = format!(
-        "https://stackoverflow.com/questions/tagged/{}?tab=Votes",
+        "https://stackoverflow.com/questions/tagged/{}?tab=Newest",
         random_tag
     );
     info!(log, "Url           => {}", &url);

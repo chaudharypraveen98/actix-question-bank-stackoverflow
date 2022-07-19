@@ -69,40 +69,47 @@ pub async fn scrape_questions(pool:Pool,log:Logger) -> Result<(), AppError> {
     let client: Client = configure_pool(pool.clone(), sublog.clone()).await?;
     let url = get_random_url(&log);
     let mut result = hacker_news(&log, &url, 10).await.unwrap();
-    let unique_tags = &mut result.unique_tags;
+
+    // IT will contains the count of occurence of tag
+    let tags_hashmap = &mut result.unique_tags;
     let questions = &result.questions;
+
+    // IT contains the tag id as value
     let mut index_table:HashMap<String, i32> = HashMap::new();
+    
     for question in questions {
-        print!("testing started",);
+
+        // creating or getting question from database
         let question_id_res = db::create_or_skip(&client, &question).await;
-        print!("l{:?}l", question);
         if let Ok(question_id_res) = question_id_res {
             let question_id = question_id_res.question_id;
-            info!(sublog, "is ok{:?}", question_id);
+
+            // iterating over all the tags in a question
             for tag in &question.tags {
-                if unique_tags.get(tag) != Some(&0) {
-                    println!("{:?}",unique_tags);
-                    *unique_tags.entry(tag.clone()).or_insert(0) -= 1;
+                if tags_hashmap.get(tag) != Some(&0) {
+                    (*tags_hashmap.entry(tag.clone()).or_insert(0)) -= 1;
                     let tag_id:i32;
-                    println!("{:?} {:?}",unique_tags,index_table);
+
+                    // checking id of tag if it exists
                     if index_table.contains_key(tag){
                          match index_table.get(tag) {
                             Some(val)=> {tag_id = val.clone()},
                             None => {tag_id=-1}
                          }
                     } else {
+                        // creating tag
                         let res = db::get_tag_id(&client, tag.clone()).await.unwrap();
-                        println!("Tag Object{:?}",res);
                         tag_id = res.tag_id as i32;
                         index_table.insert(tag.to_owned(), tag_id);
                     }
-                    println!("tag {:?}",tag_id);
+
+                    // setting relationship btw question and tag
                     let tag_question = TagQuestion{
                         tag_id:i32::from(tag_id),
                         question_id
                     };
                     match db::create_tag_quest_rel(&client, &tag_question).await  {
-                        Ok(_)=>println!("created"),
+                        Ok(_)=>println!("created relationship btw tag id {:?} and question id {:?}",tag_id,question_id),
                         Err(_) => println!("Failed"),
                     }
                 }

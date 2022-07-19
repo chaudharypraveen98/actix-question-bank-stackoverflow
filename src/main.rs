@@ -12,6 +12,7 @@ mod models;
 mod scraper;
 // mod scheduler;
 
+use std::str::FromStr;
 use std::time::Duration;
 
 use crate::api_handlers as api;
@@ -23,6 +24,9 @@ use actix_files as fs;
 use actix_rt::time;
 use actix_web::{web, App, HttpServer};
 
+use chrono::FixedOffset;
+use chrono::Local;
+use cron::Schedule;
 use deadpool_postgres::Runtime;
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
@@ -55,15 +59,39 @@ async fn main() -> std::io::Result<()> {
     // let scheduler_obj = Scheduler {pool:pool.clone(),log:log.clone()};
     // Scheduler::start(scheduler_obj);
     
-    actix_rt::spawn(async move {
-        let mut interval = time::interval(Duration::from_secs(120));
-        let new_pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
+    // actix_rt::spawn(async move {
+    //     let mut interval = time::interval(Duration::from_secs(120));
+    //     let new_pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
 
-        let new_log = configure_log();
+    //     let new_log = configure_log();
+    //     loop {
+    //         interval.tick().await;
+    //         println!("120 seconds");
+    //         scrape_questions(new_pool.clone(), new_log.clone()).await.unwrap();
+    //     }
+    // });
+
+    actix_rt::spawn(async move {
+        let expression = "1/10   *   *     *       *  *  *";
+        let schedule = Schedule::from_str(expression).unwrap();
+        let offset  = Some(FixedOffset::east(0)).unwrap();
+        // let new_pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
+        // let new_log = configure_log();
+
         loop {
-            interval.tick().await;
-            println!("120 seconds");
-            scrape_questions(new_pool.clone(), new_log.clone()).await.unwrap();
+            let mut upcoming = schedule.upcoming(offset).take(1);
+            actix_rt::time::sleep(Duration::from_millis(500)).await;
+            let local = &Local::now();
+
+            if let Some(datetime) = upcoming.next() {
+                if datetime.timestamp() <= local.timestamp() {
+                    println!("120 seconds");
+                }
+            }
+            
+            // scrape_questions(new_pool.clone(), new_log.clone())
+            //     .await
+            //     .unwrap();
         }
     });
 

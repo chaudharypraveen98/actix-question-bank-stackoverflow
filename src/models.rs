@@ -1,10 +1,12 @@
-use std::collections::{HashSet, HashMap};
+use std::{collections::{HashSet, HashMap}, sync::Arc};
 
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use slog::Logger;
 use tokio_pg_mapper_derive::PostgresMapper;
 use validator::Validate;
+
+use crate::broadcast::Broadcaster;
 
 #[derive(Serialize, Deserialize, PostgresMapper)]
 #[pg_mapper(table = "question")]
@@ -79,6 +81,7 @@ pub struct ResultResponse {
 pub struct AppState {
     pub pool: Pool,
     pub log: Logger,
+    pub broadcaster:Arc<Broadcaster>,
 }
 
 #[derive(Debug,Serialize, Deserialize)]

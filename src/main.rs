@@ -22,6 +22,8 @@ use crate::models::AppState;
 // use actix::Actor;
 use actix_files as fs;
 use actix_rt::time;
+use actix_web::HttpResponse;
+use actix_web::Responder;
 use actix_web::{web, App, HttpServer};
 
 use chrono::FixedOffset;
@@ -37,6 +39,11 @@ use slog::{info, o, Drain, Logger};
 use slog_async;
 use slog_term;
 
+mod broadcast;
+use self::broadcast::Broadcaster;
+use std::{io, sync::Arc};
+use actix_web_lab::extract::Path;
+
 fn configure_log() -> Logger {
     let decorator = slog_term::TermDecorator::new().build();
     let console_drain = slog_term::FullFormat::new(decorator).build().fuse();
@@ -44,11 +51,26 @@ fn configure_log() -> Logger {
     slog::Logger::root(console_drain, o!("v"=>env!("CARGO_PKG_VERSION")))
 }
 
+// SSE
+pub async fn sse_client(state: web::Data<AppState>) -> impl Responder {
+    println!("in api");
+    state.broadcaster.new_client().await
+}
+
+pub async fn broadcast_msg(
+    state: web::Data<AppState>,
+    Path((msg,)): Path<(String,)>,
+) -> impl Responder {
+    state.broadcaster.broadcast(&msg).await;
+    HttpResponse::Ok().body("msg sent")
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
     let config = crate::config::Config::from_env().unwrap();
     let pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
+    let broadcaster = Broadcaster::create();
 
     let log = configure_log();
 
@@ -58,7 +80,7 @@ async fn main() -> std::io::Result<()> {
     );
     // let scheduler_obj = Scheduler {pool:pool.clone(),log:log.clone()};
     // Scheduler::start(scheduler_obj);
-    
+
     // actix_rt::spawn(async move {
     //     let mut interval = time::interval(Duration::from_secs(120));
     //     let new_pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
@@ -72,11 +94,11 @@ async fn main() -> std::io::Result<()> {
     // });
 
     actix_rt::spawn(async move {
-        let expression = "1/10   *   *     *       *  *  *";
+        let expression = "1/50   *   *     *       *  *  *";
         let schedule = Schedule::from_str(expression).unwrap();
-        let offset  = Some(FixedOffset::east(0)).unwrap();
-        // let new_pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
-        // let new_log = configure_log();
+        let offset = Some(FixedOffset::east(0)).unwrap();
+        let new_pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
+        let new_log = configure_log();
 
         loop {
             let mut upcoming = schedule.upcoming(offset).take(1);
@@ -86,12 +108,11 @@ async fn main() -> std::io::Result<()> {
             if let Some(datetime) = upcoming.next() {
                 if datetime.timestamp() <= local.timestamp() {
                     println!("120 seconds");
+                    scrape_questions(new_pool.clone(), new_log.clone())
+                        .await
+                        .unwrap();
                 }
             }
-            
-            // scrape_questions(new_pool.clone(), new_log.clone())
-            //     .await
-            //     .unwrap();
         }
     });
 
@@ -105,6 +126,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(AppState {
                 pool: pool.clone(),
                 log: log.clone(),
+                broadcaster:Arc::clone(&broadcaster)
             }))
             .service(fs::Files::new("/static", "./static").show_files_listing())
             .route("/", web::get().to(home_page))
@@ -117,6 +139,8 @@ async fn main() -> std::io::Result<()> {
                 "/questions/{tag_id}{_:/?}",
                 web::get().to(get_questions_by_tag),
             )
+            .route("/events{_:/?}", web::get().to(sse_client))
+            .route("/events/{msg}", web::get().to(broadcast_msg))
             .route("/api/tags{_:/?}", web::put().to(api::update_tag))
             .route("/api/tags{_:/?}", web::get().to(api::get_tags))
             .route("/api/tags{_:/?}", web::post().to(api::create_tag))

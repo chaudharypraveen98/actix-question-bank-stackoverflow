@@ -215,4 +215,22 @@ mod tests {
             expected
         );
     }
+
+    #[test]
+    fn test_validation_length_status_code() {
+        let expected = 411;
+
+        let db_error = AppError {
+            message: None,
+            cause: None,
+            error_type: AppErrorType::ValidationError,
+        };
+
+        assert_eq!(
+            db_error.status_code(),
+            expected,
+            "Status code for ValidationError should be {}",
+            expected
+        );
+    }
 }
